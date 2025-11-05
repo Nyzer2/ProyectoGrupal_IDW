@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interfaz de Profesor - Colegio Miguel Grau</title>
+    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="../styles/footer.css">
+    <link rel="stylesheet" href="../styles/header.css">
+    <style>
+        /* Estilos para las secciones de la interfaz */
+        .seccion {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #006442;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        .seccion h2 {
+            color: #006442;
+        }
+        .lista-cursos, .lista-alumnos, .lista-trabajos {
+            list-style: none;
+            padding: 0;
+        }
+        .lista-cursos li, .lista-alumnos li, .lista-trabajos li {
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header-placeholder"></div>
+    <main class="contenido-principal">
+        <div id="interfazProfesor">
+            <h1>Bienvenido, <span id="nombreProfesor"></span>!</h1>
+            
+            <div class="seccion">
+                <h2>Mis Cursos</h2>
+                <ul id="listaCursosDisplay" class="lista-cursos">
+                    <!-- Se llenará dinámicamente -->
+                </ul>
+            </div>
+
+            <div class="seccion">
+                <h2>Alumnos Registrados</h2>
+                <ul id="listaAlumnos" class="lista-alumnos">
+                    <li>Juan Pérez - ID: EST001</li>
+                    <li>María López - ID: EST002</li>
+                    <li>Carlos García - ID: EST003</li>
+                </ul>
+            </div>
+
+            <div class="seccion">
+                <h2>Trabajos Subidos</h2>
+                <ul id="listaTrabajos" class="lista-trabajos">
+                    <li>Tarea 1: Álgebra Básica - Subida el 01/10/2023</li>
+                    <li>Proyecto Final: Geometría - Subida el 15/10/2023</li>
+                </ul>
+                <button id="btnSubirTrabajo" class="btn-enviar">Subir Nuevo Trabajo (Simulado)</button>
+            </div>
+        </div>
+    </main>
+    <div id="footer-placeholder"></div>
+    <script src="../javascript/control_profesor.js"></script>
+</body>
+
+</html>

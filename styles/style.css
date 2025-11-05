@@ -112,3 +112,68 @@ h2 {
         font-size: 1rem;
     }
 }
+/* Mejoras generales para interfaz amigable */
+.formulario {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    font-family: Arial, sans-serif;
+}
+
+.formulario label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.formulario input, .formulario select, .formulario textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.formulario input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
+}
+
+.btn-enviar {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.btn-enviar:hover {
+    background-color: #45a049;
+}
+
+.seccion {
+    background-color: #f0f8f0;
+    border: 1px solid #4CAF50;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.seccion h2 {
+    color: #4CAF50;
+    margin-top: 0;
+}
+
+#horarioCalculado {
+    white-space: pre-line; /* Para que los saltos de línea se vean */
+    max-height: 200px;
+    overflow-y: auto;
+}
