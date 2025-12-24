@@ -3,100 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Estudiante - Colegio Miguel Grau</title>
+    <title>Panel Estudiante - Colegio Miguel Grau</title>
     <link rel="stylesheet" href="../styles/style.css">
-    <link rel="stylesheet" href="../styles/footer.css">
-    <link rel="stylesheet" href="../styles/header.css">
     <link rel="stylesheet" href="../styles/interfaz_estudiante.css">
 </head>
 <body>
-    <!-- NAVBAR -->
     <nav class="navbar">
         <div class="navbar-content">
             <div class="navbar-brand">
-                <span class="navbar-brand-icon">👨‍🎓</span>
+                <span style="font-size: 32px;">&#128104;&#8205;&#127891;</span>
                 <div>
                     <h1 id="nombreEstudiante">Cargando...</h1>
-                    <p id="infoEstudiante">5to A - EST001</p>
+                    <p>Panel de Estudiante</p>
                 </div>
             </div>
             <div class="navbar-user">
-                <div class="notification-bell">
-                    🔔
-                    <span class="notification-badge">3</span>
-                </div>
-                <div class="user-avatar" id="userAvatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-                    AE
-                </div>
-                <button class="btn-logout" id="btnCerrarSesion">
-                     Cerrar Sesión
-                </button>
+                <div class="user-avatar" id="userAvatar">E</div>
+                <button class="btn-logout" id="btnCerrarSesion">Cerrar Sesion</button>
             </div>
         </div>
     </nav>
 
-    <!-- MAIN CONTAINER -->
     <div class="main-container">
-        <!-- WELCOME CARD -->
-        <div class="welcome-card">
-            <div class="welcome-content">
-                <h2>¡Bienvenido de vuelta! </h2>
-                <p>Aquí están tus tareas y calificaciones más recientes</p>
-            </div>
-            <div class="welcome-illustration"></div>
-        </div>
-
-        <!-- STATS -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon blue">📝</div>
-                <div class="stat-value" id="totalTareas">0</div>
-                <div class="stat-label">Tareas Totales</div>
+                <div class="stat-icon purple">&#128218;</div>
+                <div class="stat-info">
+                    <h3 id="totalTareas">0</h3>
+                    <p>Total Tareas</p>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon yellow">⏳</div>
-                <div class="stat-value" id="tareasPendientes">0</div>
-                <div class="stat-label">Pendientes</div>
+                <div class="stat-icon orange">&#9203;</div>
+                <div class="stat-info">
+                    <h3 id="tareasPendientes">0</h3>
+                    <p>Pendientes</p>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon green">✅</div>
-                <div class="stat-value" id="tareasCalificadas">0</div>
-                <div class="stat-label">Calificadas</div>
+                <div class="stat-icon green">&#9989;</div>
+                <div class="stat-info">
+                    <h3 id="tareasCalificadas">0</h3>
+                    <p>Calificadas</p>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon red">📊</div>
-                <div class="stat-value" id="promedioGeneral">0.0</div>
-                <div class="stat-label">Promedio</div>
+                <div class="stat-icon blue">&#128202;</div>
+                <div class="stat-info">
+                    <h3 id="promedioGeneral">0.0</h3>
+                    <p>Promedio</p>
+                </div>
             </div>
         </div>
 
-        <!-- INFO BOX -->
-        <div class="info-box">
-            <h4>Información Importante</h4>
-            <p>La funcionalidad para <strong>subir archivos de tareas</strong> estará disponible próximamente. Por ahora, puedes revisar tus tareas asignadas y consultar tus calificaciones.</p>
+        <div class="tabs">
+            <button class="tab active" onclick="cambiarTab('tareas')">Mis Tareas</button>
+            <button class="tab" onclick="cambiarTab('calificaciones')">Mis Calificaciones</button>
         </div>
 
-        <!-- SECTION HEADER -->
-        <div class="section-header">
-            <h3>Mis Tareas</h3>
-            <div class="filter-tabs">
-                <button class="filter-tab active" onclick="filtrarTareas('todas')">
-                    Todas
-                </button>
-                <button class="filter-tab" onclick="filtrarTareas('pendientes')">
-                    Pendientes
-                </button>
-                <button class="filter-tab" onclick="filtrarTareas('calificadas')">
-                    Calificadas
-                </button>
+        <div class="content-section active" id="seccionTareas">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tareas Disponibles</h2>
+                </div>
+                <div id="listaTareas"></div>
             </div>
         </div>
 
-        <!-- TASKS CONTAINER -->
-        <div class="tasks-container" id="tareasContainer">
-            <!-- Las tareas se cargarán dinámicamente -->
+        <div class="content-section" id="seccionCalificaciones">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Mis Calificaciones</h2>
+                </div>
+                <div id="listaCalificaciones"></div>
+            </div>
         </div>
     </div>
-    <script src="../scripts/interfaz_estudiante.js"></script>
+
+    <script src="../javascript/control_sistema.js"></script>
+    <script src="../javascript/interfaz_estudiante.js"></script>
 </body>
 </html>

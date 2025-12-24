@@ -1,11 +1,9 @@
-// ============================================
-// INTERFAZ PROFESOR
-// Panel de control para docentes
-// ============================================
+// Interfaz Profesor - Panel de control para docentes
 
 let sesionActual = null;
 let tareasProfesor = [];
 let estudiantesRegistrados = [];
+let todasLasCalificaciones = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!verificarSesion('profesor')) {
@@ -18,10 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     configurarEventos();
 });
 
-// ============================================
-// INICIALIZACION
-// ============================================
-
 function inicializarInterfaz() {
     document.getElementById('nombreProfesor').textContent = 
         `${sesionActual.nombres} ${sesionActual.apellidos}`;
@@ -31,13 +25,13 @@ function inicializarInterfaz() {
 }
 
 async function cargarDatos() {
-    await cargarEstadisticas();
-    await cargarTareas();
     await cargarEstudiantes();
+    await cargarTareas();
+    await cargarTodasLasCalificaciones();
+    cargarEstadisticas();
 }
 
 function configurarEventos() {
-    // Formulario crear tarea
     const formTarea = document.getElementById('formCrearTarea');
     if (formTarea) {
         formTarea.addEventListener('submit', async (e) => {
@@ -46,7 +40,6 @@ function configurarEventos() {
         });
     }
     
-    // Boton cerrar sesion
     const btnCerrar = document.getElementById('btnCerrarSesion');
     if (btnCerrar) {
         btnCerrar.addEventListener('click', () => {
@@ -56,7 +49,6 @@ function configurarEventos() {
         });
     }
     
-    // Establecer fecha minima en el formulario
     const fechaInput = document.getElementById('fechaEntrega');
     if (fechaInput) {
         const today = new Date().toISOString().split('T')[0];
@@ -64,46 +56,50 @@ function configurarEventos() {
     }
 }
 
-// ============================================
-// ESTADISTICAS
-// ============================================
+async function cargarEstudiantes() {
+    const respuesta = await peticionAPI('/usuarios', { method: 'GET' });
+    
+    if (respuesta.exito) {
+        estudiantesRegistrados = respuesta.usuarios.filter(u => u.tipo === 'estudiante');
+        renderizarEstudiantes();
+    }
+}
 
-async function cargarEstadisticas() {
-    // Estas estadisticas se calcularian desde el backend
-    // Por ahora las simulamos localmente
+async function cargarTodasLasCalificaciones() {
+    const calificacionesLocal = localStorage.getItem('calificaciones');
+    if (calificacionesLocal) {
+        todasLasCalificaciones = JSON.parse(calificacionesLocal);
+    }
+}
+
+function cargarEstadisticas() {
+    const tareasGuardadas = localStorage.getItem(`tareas_${sesionActual.id}`);
+    if (tareasGuardadas) {
+        tareasProfesor = JSON.parse(tareasGuardadas);
+    }
     
     const totalTareas = tareasProfesor.length;
     const tareasActivas = tareasProfesor.filter(t => {
         return new Date(t.fechaEntrega) >= new Date();
     }).length;
     
-    // Actualizar en la interfaz
+    const calificacionesProfesor = todasLasCalificaciones.filter(c => {
+        const tarea = tareasProfesor.find(t => t.id === c.tarea_id);
+        return tarea !== undefined;
+    });
+    
     document.getElementById('totalTareas').textContent = totalTareas;
     document.getElementById('tareasActivas').textContent = tareasActivas;
     document.getElementById('totalEstudiantes').textContent = estudiantesRegistrados.length;
+    document.getElementById('calificaciones').textContent = calificacionesProfesor.length;
 }
 
-// ============================================
-// GESTION DE TAREAS
-// ============================================
-
 async function cargarTareas() {
-    mostrarCargando(true);
-    
-    // Obtener usuarios para filtrar tareas del profesor
-    const respuesta = await peticionAPI('/usuarios', { method: 'GET' });
-    
-    if (respuesta.exito) {
-        estudiantesRegistrados = respuesta.usuarios.filter(u => u.tipo === 'estudiante');
-    }
-    
-    // Simulamos las tareas del profesor desde localStorage
     const tareasGuardadas = localStorage.getItem(`tareas_${sesionActual.id}`);
     if (tareasGuardadas) {
         tareasProfesor = JSON.parse(tareasGuardadas);
     }
     
-    mostrarCargando(false);
     renderizarTareas();
 }
 
@@ -134,21 +130,24 @@ function renderizarTareas() {
             <div class="tarea-card" style="border-left: 4px solid ${estadoColor}">
                 <div class="tarea-header">
                     <h3>${tarea.titulo}</h3>
-                    <span class="badge badge-${tarea.curso.toLowerCase().replace(/\s/g, '-')}">
+                    <span class="badge" style="background: ${estadoColor}; color: white;">
                         ${tarea.curso}
                     </span>
                 </div>
                 <p class="tarea-descripcion">${tarea.descripcion}</p>
                 <div class="tarea-info">
-                    <span>📅 ${formatearFecha(tarea.fechaEntrega)}</span>
-                    <span>⭐ ${tarea.puntos || 20} puntos</span>
-                    <span>📝 ${tarea.tipo || 'Tarea'}</span>
+                    <span>&#128197; ${formatearFecha(tarea.fechaEntrega)}</span>
+                    <span>&#11088; ${tarea.puntos || 20} puntos</span>
+                    <span>&#128221; ${tarea.tipo || 'Tarea'}</span>
+                    <span style="color: ${estadoColor}">
+                        ${diasRestantes >= 0 ? `${diasRestantes} dias restantes` : 'Vencida'}
+                    </span>
                 </div>
                 <div class="tarea-acciones">
-                    <button onclick="verEntregas(${tarea.id})" class="btn-secundario">
+                    <button onclick="verEntregas(${tarea.id})" class="btn btn-secondary btn-pequeno">
                         Ver Entregas
                     </button>
-                    <button onclick="eliminarTarea(${tarea.id})" class="btn-peligro">
+                    <button onclick="eliminarTarea(${tarea.id})" class="btn btn-danger btn-pequeno">
                         Eliminar
                     </button>
                 </div>
@@ -167,7 +166,6 @@ async function crearNuevaTarea() {
         puntos: parseInt(document.getElementById('puntosTarea').value) || 20
     };
     
-    // Validaciones
     if (!datos.titulo || !datos.descripcion || !datos.curso || !datos.fechaEntrega) {
         mostrarMensaje('Completa todos los campos obligatorios', 'error');
         return;
@@ -176,7 +174,6 @@ async function crearNuevaTarea() {
     const resultado = await crearTarea(datos, sesionActual.id);
     
     if (resultado.exito) {
-        // Agregar a la lista local
         const nuevaTarea = {
             id: Date.now(),
             ...datos,
@@ -201,29 +198,17 @@ async function eliminarTarea(tareaId) {
         return;
     }
     
-    const resultado = await peticionAPI(`/tareas/${tareaId}`, {
-        method: 'DELETE',
-        headers: {
-            'X-Profesor-ID': sesionActual.id
-        }
-    });
+    tareasProfesor = tareasProfesor.filter(t => t.id !== tareaId);
+    localStorage.setItem(`tareas_${sesionActual.id}`, JSON.stringify(tareasProfesor));
     
-    if (resultado.exito) {
-        // Eliminar de la lista local
-        tareasProfesor = tareasProfesor.filter(t => t.id !== tareaId);
-        localStorage.setItem(`tareas_${sesionActual.id}`, JSON.stringify(tareasProfesor));
-        
-        mostrarMensaje('Tarea eliminada', 'success');
-        renderizarTareas();
-        cargarEstadisticas();
-    } else {
-        mostrarMensaje(resultado.mensaje || 'Error al eliminar tarea', 'error');
-    }
+    const calificaciones = JSON.parse(localStorage.getItem('calificaciones') || '[]');
+    const calificacionesFiltradas = calificaciones.filter(c => c.tarea_id !== tareaId);
+    localStorage.setItem('calificaciones', JSON.stringify(calificacionesFiltradas));
+    
+    mostrarMensaje('Tarea eliminada', 'success');
+    renderizarTareas();
+    cargarEstadisticas();
 }
-
-// ============================================
-// CALIFICACIONES
-// ============================================
 
 function verEntregas(tareaId) {
     const tarea = tareasProfesor.find(t => t.id === tareaId);
@@ -234,16 +219,18 @@ function verEntregas(tareaId) {
 }
 
 function mostrarFormularioCalificacion(tarea) {
-    const seccionCalificaciones = document.getElementById('seccionCalificaciones');
+    const seccionCalificaciones = document.getElementById('listaCalificaciones');
     if (!seccionCalificaciones) return;
     
     seccionCalificaciones.innerHTML = `
-        <div class="calificaciones-header">
+        <div style="margin-bottom: 20px;">
             <h3>Calificar: ${tarea.titulo}</h3>
-            <button onclick="cargarDatos()" class="btn-secundario">Volver</button>
+            <button onclick="cargarDatos(); cambiarTab('tareas')" class="btn btn-secondary" style="margin-top: 10px;">
+                Volver a Tareas
+            </button>
         </div>
         
-        <div class="estudiantes-lista">
+        <div style="display: grid; gap: 15px;">
             ${estudiantesRegistrados.map(estudiante => {
                 const calificacionGuardada = obtenerCalificacion(tarea.id, estudiante.id);
                 
@@ -255,7 +242,8 @@ function mostrarFormularioCalificacion(tarea) {
                             </div>
                             <div>
                                 <strong>${estudiante.nombres} ${estudiante.apellidos}</strong>
-                                <small>${estudiante.id}</small>
+                                <br>
+                                <small style="color: #666;">${estudiante.id}</small>
                             </div>
                         </div>
                         <div class="calificacion-form">
@@ -271,14 +259,14 @@ function mostrarFormularioCalificacion(tarea) {
                             >
                             <input 
                                 type="text" 
-                                placeholder="Comentario (opcional)"
+                                placeholder="Comentario"
                                 value="${calificacionGuardada ? calificacionGuardada.comentario : ''}"
                                 id="comentario_${estudiante.id}"
                                 class="input-comentario"
                             >
                             <button 
                                 onclick="guardarCalificacion(${tarea.id}, '${estudiante.id}')"
-                                class="btn-primario btn-pequeno"
+                                class="btn btn-primary btn-pequeno"
                             >
                                 ${calificacionGuardada ? 'Actualizar' : 'Calificar'}
                             </button>
@@ -322,7 +310,6 @@ async function guardarCalificacion(tareaId, estudianteId) {
     const resultado = await asignarCalificacion(datos, sesionActual.id);
     
     if (resultado.exito) {
-        // Guardar localmente
         const calificaciones = JSON.parse(localStorage.getItem('calificaciones') || '[]');
         const index = calificaciones.findIndex(c => 
             c.tarea_id === tareaId && c.estudiante_id === estudianteId
@@ -341,21 +328,10 @@ async function guardarCalificacion(tareaId, estudianteId) {
         
         localStorage.setItem('calificaciones', JSON.stringify(calificaciones));
         mostrarMensaje('Calificacion guardada', 'success');
+        await cargarTodasLasCalificaciones();
+        cargarEstadisticas();
     } else {
         mostrarMensaje(resultado.mensaje, 'error');
-    }
-}
-
-// ============================================
-// ESTUDIANTES
-// ============================================
-
-async function cargarEstudiantes() {
-    const respuesta = await peticionAPI('/usuarios', { method: 'GET' });
-    
-    if (respuesta.exito) {
-        estudiantesRegistrados = respuesta.usuarios.filter(u => u.tipo === 'estudiante');
-        renderizarEstudiantes();
     }
 }
 
@@ -373,29 +349,28 @@ function renderizarEstudiantes() {
     }
     
     contenedor.innerHTML = estudiantesRegistrados.map(estudiante => `
-        <div class="estudiante-item">
-            <div class="avatar-pequeno">
-                ${estudiante.nombres.charAt(0)}${estudiante.apellidos.charAt(0)}
-            </div>
-            <div class="estudiante-datos">
-                <strong>${estudiante.nombres} ${estudiante.apellidos}</strong>
-                <small>ID: ${estudiante.id} | DNI: ${estudiante.dni}</small>
-                <small>📧 ${estudiante.correo}</small>
+        <div class="estudiante-card">
+            <div class="estudiante-info">
+                <div class="avatar-pequeno">
+                    ${estudiante.nombres.charAt(0)}${estudiante.apellidos.charAt(0)}
+                </div>
+                <div>
+                    <strong>${estudiante.nombres} ${estudiante.apellidos}</strong>
+                    <br>
+                    <small style="color: #666;">ID: ${estudiante.id} | DNI: ${estudiante.dni}</small>
+                    <br>
+                    <small style="color: #666;">&#128231; ${estudiante.correo}</small>
+                    ${estudiante.grado ? `<br><small style="color: #666;">Grado: ${estudiante.grado} - ${estudiante.seccion}</small>` : ''}
+                </div>
             </div>
         </div>
     `).join('');
 }
 
-// ============================================
-// NAVEGACION
-// ============================================
-
 function cambiarTab(tab) {
-    // Cambiar tabs activos
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     
-    // Activar nueva tab
     const tabElement = Array.from(document.querySelectorAll('.tab'))
         .find(t => t.textContent.toLowerCase().includes(tab.toLowerCase()));
     
@@ -409,14 +384,9 @@ function cambiarTab(tab) {
     }
 }
 
-// ============================================
-// UTILIDADES
-// ============================================
-
 function formatearFecha(fecha) {
     const date = new Date(fecha);
     return date.toLocaleDateString('es-PE', {
-        weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'

@@ -8,8 +8,33 @@
     "contrasena": "5a63e75a6e7a09f1f2bbded46dd2acae2211c972f09f109c822cd7cc06db0db6",
     "tipo": "estudiante",
     "fecha_registro": "2025-12-24T15:07:16.814308",
-    "ultimo_acceso": "2025-12-24T15:07:32.753301",
+    "ultimo_acceso": "2025-12-24T19:14:01.422022",
     "grado": "1ro",
     "seccion": "A"
+  },
+  {
+    "id": "EST002",
+    "nombres": "Miguel",
+    "apellidos": "Lopez",
+    "dni": "87545454",
+    "correo": "miguel@gmail.com",
+    "contrasena": "5a63e75a6e7a09f1f2bbded46dd2acae2211c972f09f109c822cd7cc06db0db6",
+    "tipo": "estudiante",
+    "fecha_registro": "2025-12-24T18:33:48.052213",
+    "ultimo_acceso": null,
+    "grado": "2do",
+    "seccion": "B"
+  },
+  {
+    "id": "PROF111",
+    "nombres": "Edgard",
+    "apellidos": "Machaca",
+    "dni": "55558888",
+    "correo": "edgard@gmail.com",
+    "contrasena": "5a63e75a6e7a09f1f2bbded46dd2acae2211c972f09f109c822cd7cc06db0db6",
+    "tipo": "profesor",
+    "fecha_registro": "2025-12-24T18:49:40.683691",
+    "ultimo_acceso": "2025-12-24T19:11:35.444575",
+    "especialidad": ""
   }
 ]
