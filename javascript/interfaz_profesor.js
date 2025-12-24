@@ -1,228 +1,424 @@
-// Variables globales
-let sesionActual = null;
+// ============================================
+// INTERFAZ PROFESOR
+// Panel de control para docentes
+// ============================================
 
-// Verificar token al cargar
-document.addEventListener('DOMContentLoaded', async () => {
-    authToken = sessionStorage.getItem('authToken');
-    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    
-    if (!authToken || !usuario || usuario.tipo !== 'profesor') {
-        alert('Debes iniciar sesión como profesor');
-        window.location.href = '../login.html';
+let sesionActual = null;
+let tareasProfesor = [];
+let estudiantesRegistrados = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!verificarSesion('profesor')) {
         return;
     }
-
-    cargarDatosProfesor(usuario);
-    await cargarTareas();
-});
-
-// Inicialización
-document.addEventListener('DOMContentLoaded', () => {
-    verificarSesion();
-    cargarEstadisticas();
-    cargarTareas();
+    
+    sesionActual = obtenerSesion();
+    inicializarInterfaz();
+    cargarDatos();
     configurarEventos();
 });
 
-function verificarSesion() {
-    // Simular verificación de sesión
-    sesionActual = {
-        id: 'PROF001',
-        nombres: 'Carlos',
-        apellidos: 'Mendoza',
-        tipo: 'profesor'
-    };
+// ============================================
+// INICIALIZACION
+// ============================================
 
+function inicializarInterfaz() {
     document.getElementById('nombreProfesor').textContent = 
         `${sesionActual.nombres} ${sesionActual.apellidos}`;
-    document.getElementById('userAvatar').textContent = 
-        sesionActual.nombres.charAt(0) + sesionActual.apellidos.charAt(0);
+    
+    const iniciales = sesionActual.nombres.charAt(0) + sesionActual.apellidos.charAt(0);
+    document.getElementById('userAvatar').textContent = iniciales;
 }
 
-function cargarEstadisticas() {
-    document.getElementById('totalTareas').textContent = '8';
-    document.getElementById('tareasActivas').textContent = '5';
-    document.getElementById('totalEstudiantes').textContent = '24';
-    document.getElementById('calificaciones').textContent = '18';
+async function cargarDatos() {
+    await cargarEstadisticas();
+    await cargarTareas();
+    await cargarEstudiantes();
 }
 
 function configurarEventos() {
     // Formulario crear tarea
-    document.getElementById('formCrearTarea').addEventListener('submit', (e) => {
-        e.preventDefault();
-        crearTarea();
-    });
+    const formTarea = document.getElementById('formCrearTarea');
+    if (formTarea) {
+        formTarea.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await crearNuevaTarea();
+        });
+    }
+    
+    // Boton cerrar sesion
+    const btnCerrar = document.getElementById('btnCerrarSesion');
+    if (btnCerrar) {
+        btnCerrar.addEventListener('click', () => {
+            if (confirm('¿Deseas cerrar sesion?')) {
+                cerrarSesion();
+            }
+        });
+    }
+    
+    // Establecer fecha minima en el formulario
+    const fechaInput = document.getElementById('fechaEntrega');
+    if (fechaInput) {
+        const today = new Date().toISOString().split('T')[0];
+        fechaInput.setAttribute('min', today);
+    }
+}
 
-    // Cerrar sesión
-    document.getElementById('btnCerrarSesion').addEventListener('click', () => {
-        if (confirm('¿Deseas cerrar sesión?')) {
-            window.location.href = '../index.html';
+// ============================================
+// ESTADISTICAS
+// ============================================
+
+async function cargarEstadisticas() {
+    // Estas estadisticas se calcularian desde el backend
+    // Por ahora las simulamos localmente
+    
+    const totalTareas = tareasProfesor.length;
+    const tareasActivas = tareasProfesor.filter(t => {
+        return new Date(t.fechaEntrega) >= new Date();
+    }).length;
+    
+    // Actualizar en la interfaz
+    document.getElementById('totalTareas').textContent = totalTareas;
+    document.getElementById('tareasActivas').textContent = tareasActivas;
+    document.getElementById('totalEstudiantes').textContent = estudiantesRegistrados.length;
+}
+
+// ============================================
+// GESTION DE TAREAS
+// ============================================
+
+async function cargarTareas() {
+    mostrarCargando(true);
+    
+    // Obtener usuarios para filtrar tareas del profesor
+    const respuesta = await peticionAPI('/usuarios', { method: 'GET' });
+    
+    if (respuesta.exito) {
+        estudiantesRegistrados = respuesta.usuarios.filter(u => u.tipo === 'estudiante');
+    }
+    
+    // Simulamos las tareas del profesor desde localStorage
+    const tareasGuardadas = localStorage.getItem(`tareas_${sesionActual.id}`);
+    if (tareasGuardadas) {
+        tareasProfesor = JSON.parse(tareasGuardadas);
+    }
+    
+    mostrarCargando(false);
+    renderizarTareas();
+}
+
+function renderizarTareas() {
+    const contenedor = document.getElementById('listaTareas');
+    if (!contenedor) return;
+    
+    if (tareasProfesor.length === 0) {
+        contenedor.innerHTML = `
+            <div class="empty-state">
+                <p>No has creado tareas aun</p>
+                <p>Crea tu primera tarea usando el formulario</p>
+            </div>
+        `;
+        return;
+    }
+    
+    contenedor.innerHTML = tareasProfesor.map(tarea => {
+        const fechaEntrega = new Date(tarea.fechaEntrega);
+        const hoy = new Date();
+        const diasRestantes = Math.ceil((fechaEntrega - hoy) / (1000 * 60 * 60 * 24));
+        
+        let estadoColor = '#4CAF50';
+        if (diasRestantes < 0) estadoColor = '#f44336';
+        else if (diasRestantes <= 2) estadoColor = '#FF9800';
+        
+        return `
+            <div class="tarea-card" style="border-left: 4px solid ${estadoColor}">
+                <div class="tarea-header">
+                    <h3>${tarea.titulo}</h3>
+                    <span class="badge badge-${tarea.curso.toLowerCase().replace(/\s/g, '-')}">
+                        ${tarea.curso}
+                    </span>
+                </div>
+                <p class="tarea-descripcion">${tarea.descripcion}</p>
+                <div class="tarea-info">
+                    <span>📅 ${formatearFecha(tarea.fechaEntrega)}</span>
+                    <span>⭐ ${tarea.puntos || 20} puntos</span>
+                    <span>📝 ${tarea.tipo || 'Tarea'}</span>
+                </div>
+                <div class="tarea-acciones">
+                    <button onclick="verEntregas(${tarea.id})" class="btn-secundario">
+                        Ver Entregas
+                    </button>
+                    <button onclick="eliminarTarea(${tarea.id})" class="btn-peligro">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function crearNuevaTarea() {
+    const datos = {
+        titulo: document.getElementById('tituloTarea').value.trim(),
+        descripcion: document.getElementById('descripcionTarea').value.trim(),
+        curso: document.getElementById('cursoTarea').value.trim(),
+        tipo: document.getElementById('tipoTarea').value,
+        fechaEntrega: document.getElementById('fechaEntrega').value,
+        puntos: parseInt(document.getElementById('puntosTarea').value) || 20
+    };
+    
+    // Validaciones
+    if (!datos.titulo || !datos.descripcion || !datos.curso || !datos.fechaEntrega) {
+        mostrarMensaje('Completa todos los campos obligatorios', 'error');
+        return;
+    }
+    
+    const resultado = await crearTarea(datos, sesionActual.id);
+    
+    if (resultado.exito) {
+        // Agregar a la lista local
+        const nuevaTarea = {
+            id: Date.now(),
+            ...datos,
+            profesor_id: sesionActual.id,
+            fecha_creacion: new Date().toISOString()
+        };
+        
+        tareasProfesor.push(nuevaTarea);
+        localStorage.setItem(`tareas_${sesionActual.id}`, JSON.stringify(tareasProfesor));
+        
+        mostrarMensaje('Tarea creada exitosamente', 'success');
+        document.getElementById('formCrearTarea').reset();
+        renderizarTareas();
+        cargarEstadisticas();
+    } else {
+        mostrarMensaje(resultado.mensaje, 'error');
+    }
+}
+
+async function eliminarTarea(tareaId) {
+    if (!confirm('¿Estas seguro de eliminar esta tarea?')) {
+        return;
+    }
+    
+    const resultado = await peticionAPI(`/tareas/${tareaId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Profesor-ID': sesionActual.id
         }
     });
-
-    // Establecer fecha mínima
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaEntrega').setAttribute('min', today);
+    
+    if (resultado.exito) {
+        // Eliminar de la lista local
+        tareasProfesor = tareasProfesor.filter(t => t.id !== tareaId);
+        localStorage.setItem(`tareas_${sesionActual.id}`, JSON.stringify(tareasProfesor));
+        
+        mostrarMensaje('Tarea eliminada', 'success');
+        renderizarTareas();
+        cargarEstadisticas();
+    } else {
+        mostrarMensaje(resultado.mensaje || 'Error al eliminar tarea', 'error');
+    }
 }
+
+// ============================================
+// CALIFICACIONES
+// ============================================
+
+function verEntregas(tareaId) {
+    const tarea = tareasProfesor.find(t => t.id === tareaId);
+    if (!tarea) return;
+    
+    cambiarTab('calificaciones');
+    mostrarFormularioCalificacion(tarea);
+}
+
+function mostrarFormularioCalificacion(tarea) {
+    const seccionCalificaciones = document.getElementById('seccionCalificaciones');
+    if (!seccionCalificaciones) return;
+    
+    seccionCalificaciones.innerHTML = `
+        <div class="calificaciones-header">
+            <h3>Calificar: ${tarea.titulo}</h3>
+            <button onclick="cargarDatos()" class="btn-secundario">Volver</button>
+        </div>
+        
+        <div class="estudiantes-lista">
+            ${estudiantesRegistrados.map(estudiante => {
+                const calificacionGuardada = obtenerCalificacion(tarea.id, estudiante.id);
+                
+                return `
+                    <div class="estudiante-card">
+                        <div class="estudiante-info">
+                            <div class="avatar-pequeno">
+                                ${estudiante.nombres.charAt(0)}${estudiante.apellidos.charAt(0)}
+                            </div>
+                            <div>
+                                <strong>${estudiante.nombres} ${estudiante.apellidos}</strong>
+                                <small>${estudiante.id}</small>
+                            </div>
+                        </div>
+                        <div class="calificacion-form">
+                            <input 
+                                type="number" 
+                                min="0" 
+                                max="20" 
+                                step="0.5"
+                                placeholder="Nota"
+                                value="${calificacionGuardada ? calificacionGuardada.nota : ''}"
+                                id="nota_${estudiante.id}"
+                                class="input-nota"
+                            >
+                            <input 
+                                type="text" 
+                                placeholder="Comentario (opcional)"
+                                value="${calificacionGuardada ? calificacionGuardada.comentario : ''}"
+                                id="comentario_${estudiante.id}"
+                                class="input-comentario"
+                            >
+                            <button 
+                                onclick="guardarCalificacion(${tarea.id}, '${estudiante.id}')"
+                                class="btn-primario btn-pequeno"
+                            >
+                                ${calificacionGuardada ? 'Actualizar' : 'Calificar'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function obtenerCalificacion(tareaId, estudianteId) {
+    const calificaciones = JSON.parse(localStorage.getItem('calificaciones') || '[]');
+    return calificaciones.find(c => 
+        c.tarea_id === tareaId && c.estudiante_id === estudianteId
+    );
+}
+
+async function guardarCalificacion(tareaId, estudianteId) {
+    const nota = document.getElementById(`nota_${estudianteId}`).value;
+    const comentario = document.getElementById(`comentario_${estudianteId}`).value;
+    
+    if (!nota) {
+        mostrarMensaje('Ingresa una nota', 'error');
+        return;
+    }
+    
+    const notaNum = parseFloat(nota);
+    if (notaNum < 0 || notaNum > 20) {
+        mostrarMensaje('La nota debe estar entre 0 y 20', 'error');
+        return;
+    }
+    
+    const datos = {
+        tarea_id: tareaId,
+        estudiante_id: estudianteId,
+        nota: notaNum,
+        comentario: comentario
+    };
+    
+    const resultado = await asignarCalificacion(datos, sesionActual.id);
+    
+    if (resultado.exito) {
+        // Guardar localmente
+        const calificaciones = JSON.parse(localStorage.getItem('calificaciones') || '[]');
+        const index = calificaciones.findIndex(c => 
+            c.tarea_id === tareaId && c.estudiante_id === estudianteId
+        );
+        
+        const nuevaCalificacion = {
+            ...datos,
+            fecha_calificacion: new Date().toISOString()
+        };
+        
+        if (index >= 0) {
+            calificaciones[index] = nuevaCalificacion;
+        } else {
+            calificaciones.push(nuevaCalificacion);
+        }
+        
+        localStorage.setItem('calificaciones', JSON.stringify(calificaciones));
+        mostrarMensaje('Calificacion guardada', 'success');
+    } else {
+        mostrarMensaje(resultado.mensaje, 'error');
+    }
+}
+
+// ============================================
+// ESTUDIANTES
+// ============================================
+
+async function cargarEstudiantes() {
+    const respuesta = await peticionAPI('/usuarios', { method: 'GET' });
+    
+    if (respuesta.exito) {
+        estudiantesRegistrados = respuesta.usuarios.filter(u => u.tipo === 'estudiante');
+        renderizarEstudiantes();
+    }
+}
+
+function renderizarEstudiantes() {
+    const contenedor = document.getElementById('listaEstudiantes');
+    if (!contenedor) return;
+    
+    if (estudiantesRegistrados.length === 0) {
+        contenedor.innerHTML = `
+            <div class="empty-state">
+                <p>No hay estudiantes registrados</p>
+            </div>
+        `;
+        return;
+    }
+    
+    contenedor.innerHTML = estudiantesRegistrados.map(estudiante => `
+        <div class="estudiante-item">
+            <div class="avatar-pequeno">
+                ${estudiante.nombres.charAt(0)}${estudiante.apellidos.charAt(0)}
+            </div>
+            <div class="estudiante-datos">
+                <strong>${estudiante.nombres} ${estudiante.apellidos}</strong>
+                <small>ID: ${estudiante.id} | DNI: ${estudiante.dni}</small>
+                <small>📧 ${estudiante.correo}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ============================================
+// NAVEGACION
+// ============================================
 
 function cambiarTab(tab) {
     // Cambiar tabs activos
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-
-    event.target.classList.add('active');
-    document.getElementById(`seccion${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
-
-    if (tab === 'tareas') {
-        cargarTareas();
-    }
-}
-
-document.getElementById('formCrearTarea').addEventListener('submit', async (e) => {
-    e.preventDefault();
     
-    const datos = {
-        titulo: document.getElementById('tituloTarea').value,
-        descripcion: document.getElementById('descripcionTarea').value,
-        curso: document.getElementById('cursoTarea').value,
-        tipo: document.getElementById('tipoTarea').value,
-        fechaEntrega: document.getElementById('fechaEntrega').value
-    };
-
-    try {
-        const resultado = await fetchAPI('/tareas', {
-            method: 'POST',
-            body: JSON.stringify(datos)
-        });
-
-        if (resultado.exito) {
-            alert('✅ ¡Tarea creada exitosamente!');
-            document.getElementById('formCrearTarea').reset();
-            await cargarTareas();
-        } else {
-            alert(resultado.mensaje);
-        }
-    } catch (error) {
-        alert('Error al crear la tarea');
+    // Activar nueva tab
+    const tabElement = Array.from(document.querySelectorAll('.tab'))
+        .find(t => t.textContent.toLowerCase().includes(tab.toLowerCase()));
+    
+    if (tabElement) {
+        tabElement.classList.add('active');
     }
-});
-
-async function cargarTareas() {
-    try {
-        const resultado = await fetchAPI('/tareas/profesor');
-        
-        if (resultado.exito) {
-            renderizarTareas(resultado.tareas);
-        }
-    } catch (error) {
-        console.error('Error al cargar tareas:', error);
+    
+    const seccion = document.getElementById(`seccion${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    if (seccion) {
+        seccion.classList.add('active');
     }
 }
 
-function abrirModalCalificar(tareaId) {
-    const modal = document.getElementById('modalCalificar');
-    const contenido = document.getElementById('contenidoCalificacion');
+// ============================================
+// UTILIDADES
+// ============================================
 
-    const estudiantes = [
-        { id: 'EST001', nombre: 'Ana Martínez Silva', nota: 18, comentario: 'Excelente trabajo' },
-        { id: 'EST002', nombre: 'Luis Rodríguez Pérez', nota: null, comentario: '' },
-        { id: 'EST003', nombre: 'Carmen Torres Vega', nota: 16, comentario: 'Buen esfuerzo' }
-    ];
-
-    contenido.innerHTML = `
-        <div class="students-grid">
-            ${estudiantes.map(est => `
-                <div class="student-card">
-                    <div class="student-header">
-                        <div class="student-avatar" style="background: ${generarColor(est.nombre)}">
-                            ${est.nombre.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <div class="student-info">
-                            <h4>${est.nombre}</h4>
-                            <p>${est.id}</p>
-                        </div>
-                    </div>
-                    <div class="grade-form">
-                        <div class="grade-input-group">
-                            <div class="form-group">
-                                <label>Nota (0-20)</label>
-                                <input 
-                                    type="number" 
-                                    id="nota_${est.id}" 
-                                    min="0" 
-                                    max="20" 
-                                    step="0.5"
-                                    value="${est.nota || ''}"
-                                    placeholder="0-20"
-                                >
-                            </div>
-                            <div class="form-group">
-                                <label>Comentario</label>
-                                <input 
-                                    type="text" 
-                                    id="comentario_${est.id}" 
-                                    value="${est.comentario}"
-                                    placeholder="Comentario opcional"
-                                >
-                            </div>
-                            <button class="btn btn-primary" onclick="guardarNota('${tareaId}', '${est.id}')">
-                                💾 Guardar
-                            </button>
-                        </div>
-                        ${est.nota !== null ? `
-                            <span class="grade-status graded">
-                                ✅ Calificado: ${est.nota}/20
-                            </span>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-
-    modal.classList.add('active');
-}
-
-function cerrarModal() {
-    document.getElementById('modalCalificar').classList.remove('active');
-}
-
-async function guardarNota(tareaId, estudianteId) {
-    const nota = document.getElementById(`nota_${estudianteId}`).value;
-    const comentario = document.getElementById(`comentario_${estudianteId}`).value;
-
-    try {
-        const resultado = await fetchAPI('/calificaciones', {
-            method: 'POST',
-            body: JSON.stringify({
-                tarea_id: tareaId,
-                estudiante_id: estudianteId,
-                nota: parseFloat(nota),
-                comentario: comentario
-            })
-        });
-
-        if (resultado.exito) {
-            alert('✅ Nota guardada exitosamente!');
-            await abrirModalCalificar(tareaId);
-        } else {
-            alert(resultado.mensaje);
-        }
-    } catch (error) {
-        alert('Error al guardar la nota');
-    }
-}
-
-function formatearFecha(fechaStr) {
-    const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(fechaStr).toLocaleDateString('es-ES', opciones);
-}
-
-function generarColor(nombre) {
-    let hash = 0;
-    for (let i = 0; i < nombre.length; i++) {
-        hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = `hsl(${hash % 360}, 70%, 60%)`;
-    return color;
+function formatearFecha(fecha) {
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-PE', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 }

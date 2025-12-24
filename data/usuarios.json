@@ -1,0 +1,15 @@
+[
+  {
+    "id": "EST100",
+    "nombres": "Ana",
+    "apellidos": "Garcia",
+    "dni": "12345678",
+    "correo": "ana@gmail.com",
+    "contrasena": "5a63e75a6e7a09f1f2bbded46dd2acae2211c972f09f109c822cd7cc06db0db6",
+    "tipo": "estudiante",
+    "fecha_registro": "2025-12-24T15:07:16.814308",
+    "ultimo_acceso": "2025-12-24T15:07:32.753301",
+    "grado": "1ro",
+    "seccion": "A"
+  }
+]
