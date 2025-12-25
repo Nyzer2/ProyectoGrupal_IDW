@@ -1,7 +1,7 @@
 // Registro de Profesor - Formulario de registro para docentes
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     const passwordInput = document.getElementById('contrasena');
     const strengthIndicator = document.getElementById('passwordStrength');
 
@@ -9,14 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordInput.addEventListener('input', (e) => {
             const password = e.target.value;
             strengthIndicator.classList.remove('weak', 'medium', 'strong');
-            
+
             if (password.length === 0) {
                 strengthIndicator.classList.remove('visible');
                 return;
             }
 
             strengthIndicator.classList.add('visible');
-            
+
             let strength = 0;
             if (password.length >= 6) strength++;
             if (password.length >= 8) strength++;
@@ -55,50 +55,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formRegistro) {
         formRegistro.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const datos = {
                 id: document.getElementById('id').value.trim(),
                 nombres: document.getElementById('nombres').value.trim(),
                 apellidos: document.getElementById('apellidos').value.trim(),
                 dni: document.getElementById('dni').value.trim(),
                 correo: document.getElementById('correo').value.trim(),
-                contrasena: document.getElementById('contrasena').value,
-                especialidad: document.getElementById('especialidad').value.trim()
+                contrasena: document.getElementById('contrasena').value
             };
-            
-            if (!datos.id || !datos.nombres || !datos.apellidos || !datos.dni || 
+
+            if (!datos.id || !datos.nombres || !datos.apellidos || !datos.dni ||
                 !datos.correo || !datos.contrasena) {
                 mostrarAlerta('Todos los campos son obligatorios', 'error');
                 return;
             }
-            
+
             if (!validarIDProfesor(datos.id)) {
                 mostrarAlerta('El ID debe tener el formato PROF### (ej: PROF001)', 'error');
                 return;
             }
-            
+
             if (!validarDNI(datos.dni)) {
                 mostrarAlerta('El DNI debe tener 8 digitos', 'error');
                 return;
             }
-            
+
             if (!validarCorreo(datos.correo)) {
                 mostrarAlerta('Correo electronico invalido', 'error');
                 return;
             }
-            
+
             const validacionPass = validarContrasena(datos.contrasena);
             if (!validacionPass.valido) {
                 mostrarAlerta(validacionPass.mensaje, 'error');
                 return;
             }
-            
+
             const resultado = await registrarProfesor(datos);
-            
+
             if (resultado.exito) {
                 mostrarAlerta(resultado.mensaje, 'success');
                 formRegistro.reset();
-                
+
                 setTimeout(() => {
                     window.location.href = '/login.html';
                 }, 2000);
@@ -117,7 +116,7 @@ function mostrarAlerta(mensaje, tipo) {
                 ${tipo === 'success' ? '' : ''} ${mensaje}
             </div>
         `;
-        
+
         setTimeout(() => {
             container.innerHTML = '';
         }, 5000);

@@ -1,7 +1,4 @@
-// ============================================
-// INTERFAZ ESTUDIANTE
-// Panel de control para alumnos
-// ============================================
+// Interfaz Estudiante - Panel de control para alumnos
 
 let sesionActual = null;
 let tareasDisponibles = [];
@@ -17,10 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
 });
 
-// ============================================
-// INICIALIZACION
-// ============================================
-
 function inicializarInterfaz() {
     document.getElementById('nombreEstudiante').textContent = 
         `${sesionActual.nombres} ${sesionActual.apellidos}`;
@@ -28,7 +21,6 @@ function inicializarInterfaz() {
     const iniciales = sesionActual.nombres.charAt(0) + sesionActual.apellidos.charAt(0);
     document.getElementById('userAvatar').textContent = iniciales;
     
-    // Boton cerrar sesion
     const btnCerrar = document.getElementById('btnCerrarSesion');
     if (btnCerrar) {
         btnCerrar.addEventListener('click', () => {
@@ -45,44 +37,26 @@ async function cargarDatos() {
     cargarEstadisticas();
 }
 
-// ============================================
-// ESTADISTICAS
-// ============================================
-
 function cargarEstadisticas() {
     const totalTareas = tareasDisponibles.length;
     const calificadas = misCalificaciones.length;
     const pendientes = totalTareas - calificadas;
     
-    // Calcular promedio
     let promedio = 0;
     if (misCalificaciones.length > 0) {
         const suma = misCalificaciones.reduce((acc, cal) => acc + cal.nota, 0);
-        promedio = (suma / misCalificaciones.length).toFixed(2);
+        promedio = (suma / misCalificaciones.length).toFixed(1);
     }
     
-    // Actualizar en la interfaz
     document.getElementById('totalTareas').textContent = totalTareas;
     document.getElementById('tareasPendientes').textContent = pendientes;
     document.getElementById('tareasCalificadas').textContent = calificadas;
     document.getElementById('promedioGeneral').textContent = promedio;
 }
 
-// ============================================
-// TAREAS
-// ============================================
-
 async function cargarTareas() {
-    mostrarCargando(true);
-    
-    // Cargar todas las tareas de todos los profesores
-    const todosLosProfesores = JSON.parse(localStorage.getItem('sesion'))?.tipo === 'profesor' 
-        ? [JSON.parse(localStorage.getItem('sesion'))] 
-        : [];
-    
     tareasDisponibles = [];
     
-    // Buscar tareas en localStorage de todos los profesores
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('tareas_PROF')) {
@@ -91,7 +65,6 @@ async function cargarTareas() {
         }
     }
     
-    mostrarCargando(false);
     renderizarTareas();
 }
 
@@ -109,7 +82,6 @@ function renderizarTareas() {
         return;
     }
     
-    // Ordenar tareas: pendientes primero, luego por fecha
     const tareasOrdenadas = [...tareasDisponibles].sort((a, b) => {
         const fechaA = new Date(a.fechaEntrega);
         const fechaB = new Date(b.fechaEntrega);
@@ -146,20 +118,23 @@ function renderizarTareas() {
                 </div>
                 <p class="tarea-descripcion">${tarea.descripcion}</p>
                 <div class="tarea-info">
-                    <span>📚 ${tarea.curso}</span>
-                    <span>📅 ${formatearFecha(tarea.fechaEntrega)}</span>
-                    <span>⭐ ${tarea.puntos || 20} puntos</span>
+                    <span>&#128218; ${tarea.curso}</span>
+                    <span>&#128197; ${formatearFecha(tarea.fechaEntrega)}</span>
+                    <span>&#11088; ${tarea.puntos || 20} puntos</span>
+                    <span>&#128221; ${tarea.tipo}</span>
                 </div>
                 ${calificacion ? `
                     <div class="calificacion-box" style="background: ${calificacion.nota >= 11 ? '#e8f5e9' : '#ffebee'}">
-                        <strong>Nota: ${calificacion.nota}/20</strong>
+                        <strong style="color: ${calificacion.nota >= 11 ? '#4CAF50' : '#f44336'}">
+                            Nota: ${calificacion.nota}/20
+                        </strong>
                         ${calificacion.comentario ? `<p>${calificacion.comentario}</p>` : ''}
                     </div>
                 ` : `
                     <div class="tarea-estado">
                         ${diasRestantes >= 0 
-                            ? `<span>📝 ${diasRestantes} días restantes</span>`
-                            : `<span style="color: #f44336">⚠️ Tarea vencida</span>`
+                            ? `<span>&#9203; ${diasRestantes} dias restantes</span>`
+                            : `<span style="color: #f44336">&#9888; Tarea vencida</span>`
                         }
                     </div>
                 `}
@@ -167,10 +142,6 @@ function renderizarTareas() {
         `;
     }).join('');
 }
-
-// ============================================
-// CALIFICACIONES
-// ============================================
 
 async function cargarCalificaciones() {
     const calificaciones = JSON.parse(localStorage.getItem('calificaciones') || '[]');
@@ -192,7 +163,6 @@ function renderizarCalificaciones() {
         return;
     }
     
-    // Calcular estadisticas
     const notas = misCalificaciones.map(c => c.nota);
     const promedio = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(2);
     const notaMasAlta = Math.max(...notas);
@@ -201,19 +171,19 @@ function renderizarCalificaciones() {
     
     contenedor.innerHTML = `
         <div class="estadisticas-detalladas">
-            <div class="stat-card">
+            <div class="stat-card-small">
                 <h4>Promedio General</h4>
                 <p class="stat-numero">${promedio}</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card-small">
                 <h4>Nota Mas Alta</h4>
                 <p class="stat-numero" style="color: #4CAF50">${notaMasAlta}</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card-small">
                 <h4>Nota Mas Baja</h4>
                 <p class="stat-numero" style="color: #f44336">${notaMasBaja}</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card-small">
                 <h4>Aprobadas</h4>
                 <p class="stat-numero">${aprobadas}/${misCalificaciones.length}</p>
             </div>
@@ -227,7 +197,7 @@ function renderizarCalificaciones() {
                 const aprobado = calificacion.nota >= 11;
                 
                 return `
-                    <div class="calificacion-item" style="border-left: 4px solid ${aprobado ? '#4CAF50' : '#f44336'}">
+                    <div class="calificacion-item" style="border-left-color: ${aprobado ? '#4CAF50' : '#f44336'}">
                         <div class="calificacion-header">
                             <h3>${tarea.titulo}</h3>
                             <span class="nota-grande ${aprobado ? 'aprobado' : 'desaprobado'}">
@@ -235,6 +205,7 @@ function renderizarCalificaciones() {
                             </span>
                         </div>
                         <p><strong>Curso:</strong> ${tarea.curso}</p>
+                        <p><strong>Tipo:</strong> ${tarea.tipo}</p>
                         <p><strong>Fecha calificacion:</strong> ${formatearFecha(calificacion.fecha_calificacion)}</p>
                         ${calificacion.comentario ? `
                             <div class="comentario-profesor">
@@ -249,16 +220,10 @@ function renderizarCalificaciones() {
     `;
 }
 
-// ============================================
-// NAVEGACION
-// ============================================
-
 function cambiarTab(tab) {
-    // Cambiar tabs activos
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     
-    // Activar nueva tab
     const tabElement = Array.from(document.querySelectorAll('.tab'))
         .find(t => t.textContent.toLowerCase().includes(tab.toLowerCase()));
     
@@ -271,7 +236,6 @@ function cambiarTab(tab) {
         seccion.classList.add('active');
     }
     
-    // Recargar datos segun la seccion
     if (tab === 'tareas') {
         cargarTareas();
     } else if (tab === 'calificaciones') {
@@ -279,14 +243,9 @@ function cambiarTab(tab) {
     }
 }
 
-// ============================================
-// UTILIDADES
-// ============================================
-
 function formatearFecha(fecha) {
     const date = new Date(fecha);
     return date.toLocaleDateString('es-PE', {
-        weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
